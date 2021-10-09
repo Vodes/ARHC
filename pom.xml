@@ -17,12 +17,6 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>3.8.1</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>com.formdev</groupId>
 			<artifactId>flatlaf</artifactId>
 			<version>1.6</version>
@@ -32,12 +26,6 @@
 			<groupId>com.dgtlrepublic</groupId>
 			<artifactId>anitomyJ</artifactId>
 			<version>0.0.7</version>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/net.java.dev.jna/jna -->
-		<dependency>
-			<groupId>net.java.dev.jna</groupId>
-			<artifactId>jna</artifactId>
-			<version>5.9.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.formdev</groupId>
