@@ -1,5 +1,6 @@
 # ARHC
 A quick tool to batch rename and/or creating hardlinks for Anime
+(this was mostly made to test that theme, I dont actually need or use it)
 
 ![Preview](https://vodes.pw/i/Alex/TalsnVj6Vn5LMND.png)
 
