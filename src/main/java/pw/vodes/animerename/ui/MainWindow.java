@@ -41,6 +41,7 @@ import com.formdev.flatlaf.intellijthemes.FlatArcDarkIJTheme;
 
 import pw.vodes.animerename.App;
 import pw.vodes.animerename.FileParse;
+import pw.vodes.animerename.TagUtil;
 import pw.vodes.animerename.cli.CommandLineUtil;
 
 public class MainWindow {
@@ -58,13 +59,13 @@ public class MainWindow {
 	}
 	
 	public void changeTheme() {
-		UIManager.put( "ScrollBar.width", 12 );
-		UIManager.put( "ScrollBar.trackArc", 999 );
-		UIManager.put( "ScrollBar.thumbArc", 999 );
-		UIManager.put( "ScrollBar.trackInsets", new Insets( 2, 4, 2, 4 ) );
-		UIManager.put( "ScrollBar.thumbInsets", new Insets( 2, 2, 2, 2 ) );
-		UIManager.put( "ScrollBar.track", new Color( 0xe0e0e0 ) );
-		UIManager.put( "TextComponent.arc", 5 );
+		UIManager.put("ScrollBar.width", 12);
+		UIManager.put("ScrollBar.trackArc", 999);
+		UIManager.put("ScrollBar.thumbArc", 999);
+		UIManager.put("ScrollBar.trackInsets", new Insets(2, 4, 2, 4));
+		UIManager.put("ScrollBar.thumbInsets", new Insets(2, 2, 2, 2));
+		UIManager.put("ScrollBar.track", new Color(0xe0e0e0));
+		UIManager.put("TextComponent.arc", 5);
 	}
 
 	private void initialize() {
@@ -73,6 +74,8 @@ public class MainWindow {
 		frame.setMinimumSize(new Dimension(600, 465));
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setTitle("Anime Renamer / Hardlink Creator");
+		
+		final JCheckBox chckbxNewCheckBox_2 = new JCheckBox("Allow other media files");
 		
 		JButton btnNewButton = new JButton("Load Folder");
 		btnNewButton.addActionListener(new ActionListener() {
@@ -86,9 +89,16 @@ public class MainWindow {
 					previousParent = f.getSelectedFile().getParentFile();
 					App.currentFiles.clear();
 					for(File file : f.getSelectedFile().listFiles()) {
-						if(FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("mkv")) {
-							App.currentFiles.add(file);
+						if(chckbxNewCheckBox_2.isSelected()) {
+							if(FilenameUtils.isExtension(file.getName().toLowerCase(), new String[] {"mkv", "mp4", "mp3", "ac3", "eac3", "aac", "ogg", "avi", "opus", "flac", "ape", "mka", "mks", "ass", "xml", "cbz", "cbr", "cbt"})) {
+								App.currentFiles.add(file);
+							}
+						} else {
+							if(FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("mkv")) {
+								App.currentFiles.add(file);
+							}
 						}
+
 					}
 					updateTable();
 				}
@@ -166,7 +176,7 @@ public class MainWindow {
 		JLabel lblNewLabel_1 = new JLabel("Filename Template");
 		
 		txtanimetitleseasonepisode = new JTextField();
-		txtanimetitleseasonepisode.setText("[%release_group%] %anime_title% - %season_number_s%%episode_number_e%");
+		txtanimetitleseasonepisode.setText("%release_group_b% %anime_title% - %season_number_s%%episode_number_e%");
 		txtanimetitleseasonepisode.getDocument().addDocumentListener(new DocumentListener() {
 			  public void changedUpdate(DocumentEvent e) {
 				  updateTable();
@@ -183,8 +193,7 @@ public class MainWindow {
 		JButton btnNewButton_2 = new JButton("?");
 		btnNewButton_2.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				String keys = "%anime_title%\n%episode_title%\n%episode_number%\n%episode_number_e%\n%season_number%\n%season_number_s%\n%release_group%";
-				JOptionPane.showMessageDialog(frame, keys, "Available Tokens", 1);
+				JOptionPane.showMessageDialog(frame, App.getTokenString(), "Available Tokens", 1);
 			}
 		});
 		btnNewButton_2.setFocusPainted(false);
@@ -234,6 +243,23 @@ public class MainWindow {
 			}
 		});
 		
+		JButton btnNewButton_4_1 = new JButton("Fix Tagging");
+		btnNewButton_4_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(chckbxNewCheckBox_2.isSelected()) {
+					JOptionPane.showMessageDialog(frame, "You can only fix the tags for mkv files!", "Error", 0);
+					return;
+				}
+				
+				for (int count = 0; count < table.getRowCount(); count++) {
+					File in = ((File)table.getValueAt(count, -1));
+					TagUtil.fixTagging(in);
+				}
+				JOptionPane.showMessageDialog(frame, "Done fixing tags.", "Done", 1);
+			}
+		});
+		btnNewButton_4_1.setFocusPainted(false);
+				
 		GroupLayout groupLayout = new GroupLayout(frame.getContentPane());
 		groupLayout.setHorizontalGroup(
 			groupLayout.createParallelGroup(Alignment.LEADING)
@@ -242,11 +268,13 @@ public class MainWindow {
 					.addGroup(groupLayout.createParallelGroup(Alignment.LEADING)
 						.addGroup(groupLayout.createSequentialGroup()
 							.addComponent(chckbxNewCheckBox, GroupLayout.PREFERRED_SIZE, 130, GroupLayout.PREFERRED_SIZE)
-							.addContainerGap())
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addComponent(chckbxNewCheckBox_2)
+							.addGap(418))
 						.addGroup(groupLayout.createParallelGroup(Alignment.LEADING)
 							.addGroup(groupLayout.createSequentialGroup()
 								.addGroup(groupLayout.createParallelGroup(Alignment.LEADING)
-									.addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, 652, Short.MAX_VALUE)
+									.addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, 671, Short.MAX_VALUE)
 									.addGroup(groupLayout.createSequentialGroup()
 										.addGroup(groupLayout.createParallelGroup(Alignment.TRAILING, false)
 											.addComponent(lblNewLabel, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -255,12 +283,15 @@ public class MainWindow {
 										.addPreferredGap(ComponentPlacement.RELATED)
 										.addGroup(groupLayout.createParallelGroup(Alignment.LEADING)
 											.addComponent(btnNewButton_4, GroupLayout.PREFERRED_SIZE, 145, GroupLayout.PREFERRED_SIZE)
-											.addComponent(btnNewButton_3, GroupLayout.PREFERRED_SIZE, 145, GroupLayout.PREFERRED_SIZE))))
+											.addGroup(groupLayout.createSequentialGroup()
+												.addComponent(btnNewButton_3, GroupLayout.PREFERRED_SIZE, 145, GroupLayout.PREFERRED_SIZE)
+												.addPreferredGap(ComponentPlacement.RELATED)
+												.addComponent(btnNewButton_4_1, GroupLayout.PREFERRED_SIZE, 145, GroupLayout.PREFERRED_SIZE)))))
 								.addContainerGap())
 							.addGroup(groupLayout.createSequentialGroup()
 								.addGroup(groupLayout.createParallelGroup(Alignment.LEADING)
 									.addGroup(groupLayout.createSequentialGroup()
-										.addComponent(lblNewLabel_1, GroupLayout.DEFAULT_SIZE, 169, Short.MAX_VALUE)
+										.addComponent(lblNewLabel_1, GroupLayout.DEFAULT_SIZE, 192, Short.MAX_VALUE)
 										.addGap(297))
 									.addGroup(groupLayout.createSequentialGroup()
 										.addComponent(lblNewLabel_2, GroupLayout.PREFERRED_SIZE, 119, GroupLayout.PREFERRED_SIZE)
@@ -284,9 +315,12 @@ public class MainWindow {
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addGroup(groupLayout.createParallelGroup(Alignment.BASELINE)
 						.addComponent(btnNewButton_1)
-						.addComponent(btnNewButton_3))
+						.addComponent(btnNewButton_3)
+						.addComponent(btnNewButton_4_1))
 					.addGap(5)
-					.addComponent(chckbxNewCheckBox)
+					.addGroup(groupLayout.createParallelGroup(Alignment.BASELINE)
+						.addComponent(chckbxNewCheckBox)
+						.addComponent(chckbxNewCheckBox_2))
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(lblNewLabel_1)
 					.addPreferredGap(ComponentPlacement.RELATED)
@@ -302,7 +336,7 @@ public class MainWindow {
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(lblNewLabel)
 					.addGap(6)
-					.addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, 303, Short.MAX_VALUE)
+					.addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, 327, Short.MAX_VALUE)
 					.addGap(4))
 		);
 		DefaultTableModel model = new DefaultTableModel() {
@@ -329,7 +363,7 @@ public class MainWindow {
 		}
 		ArrayList<FileParse> parsed = new ArrayList<FileParse>();
 		for(File file : App.currentFiles) {
-			parsed.add(new FileParse(file, new File(file.getParentFile(), App.doTokenReplace(file.getName(), txtanimetitleseasonepisode.getText()) + "." + FilenameUtils.getExtension(file.getName()))));
+			parsed.add(new FileParse(file, new File(file.getParentFile(), App.doTokenReplace(file.getName(), txtanimetitleseasonepisode.getText()).trim() + "." + FilenameUtils.getExtension(file.getName()))));
 		}
 		table.setModel(new FileParseTableModel(parsed));
 		table.repaint();

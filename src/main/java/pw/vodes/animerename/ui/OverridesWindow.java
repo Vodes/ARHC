@@ -50,6 +50,8 @@ public class OverridesWindow extends JDialog {
 				{"%season_number%", App.getTokenOverride("%season_number%")},
 				{"%season_number_s%", App.getTokenOverride("%season_number_s%")},
 				{"%release_group%", App.getTokenOverride("%release_group%")},
+				{"%release_group_b%", App.getTokenOverride("%release_group%")},
+				{"%release_group_p%", App.getTokenOverride("%release_group%")},
 			},
 			new String[] {
 				"Token", "Override"

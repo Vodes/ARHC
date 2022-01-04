@@ -13,7 +13,7 @@ import pw.vodes.animerename.Sys;
 import pw.vodes.animerename.TagUtil;
 import pw.vodes.animerename.TagUtil.Track;
 
-public class MkvInfoParser {
+public class MkvInfoWrapper {
 	
 	private static List<String> getOutput(Process p){
 		ArrayList<String> out = new ArrayList<String>();
@@ -36,32 +36,39 @@ public class MkvInfoParser {
 		ArrayList<TagUtil.Track> tracks = new ArrayList<TagUtil.Track>();
 
 		try {
-			var output = getOutput(CommandLineUtil.runCommand(Arrays.asList(String.format("mkvinfo \"%s\"", file.getAbsolutePath())), true));
+			List<String> output = getOutput(CommandLineUtil.runCommand(Arrays.asList(String.format("mkvinfo \"%s\"", file.getAbsolutePath())), true));
 			Track current = null;
-			for(var line : output) {
+//			System.out.println("\n\n");
+			for(String line : output) {
+//				System.out.println(line);
 				if(StringUtils.startsWithIgnoreCase(line, "Track number")) {
 					if(current != null) {
+//						System.out.println("\n\n");
 						tracks.add(current);
 					}
-					var numberSt = StringUtils.removeStartIgnoreCase(line, "Track number:").trim();
+					String numberSt = StringUtils.removeStartIgnoreCase(line, "Track number:").trim();
 					if(numberSt.contains(" ")) {
 						numberSt = numberSt.split(" ")[0];
 					}
 					current = new Track(Integer.parseInt(numberSt));
+//					System.out.println("Track: " + current.number);
 				}
 				
 				if(current != null) {
 					if(StringUtils.startsWithIgnoreCase(line, "Track type")) {
 						current.type = line.split(":")[1].trim();
+//						System.out.println("Type: " + current.type);
 					}
 					if(StringUtils.startsWithIgnoreCase(line, "codec id")) {
 						current.codec_id = line.split(":")[1].trim();
 					}
 					if(StringUtils.startsWithIgnoreCase(line, "language")) {
 						current.lang = line.split(":")[1].trim();
+//						System.out.println("Lang: " + current.lang);
 					}
 					if(StringUtils.startsWithIgnoreCase(line, "name")) {
 						current.name = line.split(":")[1].trim();
+//						System.out.println("Name: " + current.name);
 					}
 					if(StringUtils.startsWithIgnoreCase(line, "channels")) {
 						current.channels = Integer.parseInt(line.split(":")[1].trim());
@@ -72,9 +79,10 @@ public class MkvInfoParser {
 					if(StringUtils.startsWithIgnoreCase(line, "forced track")) {
 						current.forced_flag = Integer.parseInt(line.split(":")[1].trim()) > 0;
 					}
-					if(StringUtils.startsWithIgnoreCase(line, "EBML void") || StringUtils.startsWithIgnoreCase(line, "File name")) {
-						 tracks.add(current);
-						 break;
+					if (StringUtils.startsWithIgnoreCase(line, "EBML void") || StringUtils.startsWithIgnoreCase(line, "File name")) {
+						tracks.add(current);
+//						System.out.println("\n\n");
+						break;
 					}
 				}
 			}

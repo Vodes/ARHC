@@ -26,6 +26,10 @@ public class Token {
 					return "E" + el.getValue();
 				} else if(name.endsWith("_s%")) {
 					return "S" + el.getValue();
+				} else if(name.endsWith("_b%")) {
+					return "[" + el.getValue() + "]";
+				} else if(name.endsWith("_p%")) {
+					return "(" + el.getValue() + ")";
 				} else {
 					return el.getValue();
 				}
