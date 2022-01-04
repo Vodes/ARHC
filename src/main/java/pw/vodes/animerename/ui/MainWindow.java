@@ -40,8 +40,8 @@ import org.apache.commons.io.FilenameUtils;
 import com.formdev.flatlaf.intellijthemes.FlatArcDarkIJTheme;
 
 import pw.vodes.animerename.App;
-import pw.vodes.animerename.CommandLineUtil;
 import pw.vodes.animerename.FileParse;
+import pw.vodes.animerename.cli.CommandLineUtil;
 
 public class MainWindow {
 
