@@ -1,4 +1,4 @@
-package pw.vodes.animerename;
+package pw.vodes.animerename.ui;
 
 import java.awt.EventQueue;
 
@@ -10,6 +10,9 @@ import javax.swing.JTable;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableModel;
+
+import pw.vodes.animerename.App;
+
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import javax.swing.JLabel;

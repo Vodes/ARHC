@@ -1,4 +1,4 @@
-package pw.vodes.animerename;
+package pw.vodes.animerename.ui;
 
 import java.awt.Color;
 import java.awt.Component;
@@ -39,9 +39,13 @@ import org.apache.commons.io.FilenameUtils;
 
 import com.formdev.flatlaf.intellijthemes.FlatArcDarkIJTheme;
 
+import pw.vodes.animerename.App;
+import pw.vodes.animerename.CommandLineUtil;
+import pw.vodes.animerename.FileParse;
+
 public class MainWindow {
 
-	JFrame frame;
+	public JFrame frame;
 	private JTable table;
 	private JTextField txtanimetitleseasonepisode;
 	private JTextField textField;

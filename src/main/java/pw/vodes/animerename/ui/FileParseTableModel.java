@@ -1,9 +1,11 @@
-package pw.vodes.animerename;
+package pw.vodes.animerename.ui;
 
 import java.io.File;
 import java.util.ArrayList;
 
 import javax.swing.table.AbstractTableModel;
+
+import pw.vodes.animerename.FileParse;
 
 public class FileParseTableModel extends AbstractTableModel {
 

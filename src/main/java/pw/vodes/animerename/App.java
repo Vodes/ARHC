@@ -1,5 +1,6 @@
 package pw.vodes.animerename;
 
+import java.awt.Desktop;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,6 +14,8 @@ import com.dgtlrepublic.anitomyj.Element;
 import com.formdev.flatlaf.intellijthemes.FlatArcDarkIJTheme;
 import com.formdev.flatlaf.intellijthemes.FlatArcIJTheme;
 
+import pw.vodes.animerename.ui.MainWindow;
+
 public class App 
 {
 	
@@ -22,11 +25,14 @@ public class App
 	
     public static void main(String[] args){
     	addTokens();
-		FlatArcDarkIJTheme.setup();
-//    	FlatArcIJTheme.setup();
-		window = new MainWindow();
-		window.frame.setVisible(true);
-		window.updateTable();
+    	if(Desktop.isDesktopSupported() && args.length < 1) {
+    		FlatArcDarkIJTheme.setup();
+    		window = new MainWindow();
+    		window.frame.setVisible(true);
+    		window.updateTable();	
+    	} else {
+    		
+    	}
     }
     
     private static void addTokens() {
