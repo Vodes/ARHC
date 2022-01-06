@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
@@ -35,6 +36,7 @@ public class App
 	
 	//CLI Options
 	private static final String dry_run_st = " Tool goes into dry-run mode if neither of rename, mkvt, hardlink or fixtags have been specified.";
+	private static Option fileOption = new Option("f", "file", true, "Specifies a single file to edit.");
 	private static Option dirOption = new Option("d", "dir", true, "Specifies the directory of files you want to work with.\nDefault is the current working dir.");
 	private static Option templateOption = new Option("t", "template", true, "Specifies the template used for renaming.\nDefault: " + DEFAULT_TEMPLATE);
 	private static Option titleTemplateOption = new Option("tt", "title_template", true, "Specifies the template used for mkv titles.\nDefault: " + DEFAULT_TITLE_TEMPLATE);
@@ -53,6 +55,7 @@ public class App
     		window.updateTable();	
     	} else {
     		Options cliOptions = new Options();
+    		cliOptions.addOption(fileOption);
     		cliOptions.addOption(dirOption);
     		cliOptions.addOption(templateOption);
     		cliOptions.addOption(titleTemplateOption);
@@ -92,9 +95,15 @@ public class App
             }
             
             String dir = cmd.getOptionValue(dirOption, System.getProperty("user.dir"));
-            File dir_file = new File(dir);
-            if(cmd.hasOption(dirOption)) {
-            	if(!dir_file.exists() || !dir_file.isDirectory() || dir_file.listFiles().length < 1) {
+            File in_file = new File(dir);
+            if(cmd.hasOption(fileOption)) {
+            	in_file = new File(cmd.getOptionValue(fileOption));
+            	if(!in_file.exists() || in_file.isDirectory()) {
+            		Sys.out("Please provide a valid file!", "error");
+            		System.exit(1);
+            	}
+            } else if(cmd.hasOption(dirOption)) {
+            	if(!in_file.exists() || !in_file.isDirectory() || in_file.listFiles().length < 1) {
             		Sys.out("Please provide a valid & not empty directory!", "error");
             		System.exit(1);
             	}
@@ -103,15 +112,16 @@ public class App
             String title_template = cmd.getOptionValue(titleTemplateOption, DEFAULT_TITLE_TEMPLATE);
             
             if(!cmd.hasOption(renameOption) && !cmd.hasOption(hardlinkOption) && !cmd.hasOption(fixtagsOption) && !cmd.hasOption(titleOption)) {
-            	dryRun(dir_file, template, title_template);
+            	dryRun(in_file, template, title_template);
             } else {
-            	cliRun(dir_file, cmd.hasOption(renameOption), cmd.hasOption(hardlinkOption), cmd.hasOption(fixtagsOption), cmd.hasOption(titleOption), template, title_template);
+            	cliRun(in_file, cmd.hasOption(renameOption), cmd.hasOption(hardlinkOption), cmd.hasOption(fixtagsOption), cmd.hasOption(titleOption), template, title_template);
             }
     	}
     }
     
-    private static void dryRun(File dir, String template, String title_template) {
-    	for(File file : dir.listFiles()) {
+    private static void dryRun(File in, String template, String title_template) {
+    	List<File> files = in.isDirectory() ? Arrays.asList(in.listFiles()) : Arrays.asList(in);
+    	for(File file : files) {
 			if(FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("mkv")) {
 				System.out.println(file.getName() + "\n");
 				System.out.println("Would rename/hardlink to: " + doTokenReplace(file.getName(), template) + ".mkv");
@@ -121,14 +131,13 @@ public class App
     	
     }
     
-    private static void cliRun(File dir, boolean rename, boolean hardlink, boolean fixtags, boolean changeTitle, String template, String title_template) {
-    	for(File file : dir.listFiles()) {
+    private static void cliRun(File in, boolean rename, boolean hardlink, boolean fixtags, boolean changeTitle, String template, String title_template) {
+    	List<File> files = in.isDirectory() ? Arrays.asList(in.listFiles()) : Arrays.asList(in);
+    	for(File file : files) {
     		if(changeTitle) {
 				String command = String.format("mkvpropedit \"%s\" --edit info --set title=\"%s\"", file.getAbsolutePath(), doTokenReplace(file.getName(), title_template));
-				ArrayList<String> commands = new ArrayList<>();
-				commands.add(command);
 				try {
-					CommandLineUtil.runCommand(commands, true).waitFor();
+					CommandLineUtil.runCommand(Arrays.asList(command), true).waitFor();
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				}
