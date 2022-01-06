@@ -37,7 +37,7 @@ public class TagUtil {
 		boolean hadFirst = false;
 		for(Track track : tracks) {
 			if(track.type.equalsIgnoreCase("audio")) {
-				if(track.lang.equalsIgnoreCase("jpn")) {
+				if(track.lang.equalsIgnoreCase("jpn") || track.lang.equalsIgnoreCase("jp")) {
 					if(!hadFirst) {
 						track.default_flag = hadFirst = true;
 						track.forced_flag = false;
@@ -57,7 +57,7 @@ public class TagUtil {
 	public static Track getPossibleFullSubs(List<Track> tracks) {
 		for(Track track : tracks) {
 			if(track.type.equalsIgnoreCase("subtitles")) {
-				if(track.lang.equalsIgnoreCase("eng") || track.lang.equalsIgnoreCase("jpn") || track.lang.equalsIgnoreCase("und")) {
+				if(track.lang.equalsIgnoreCase("eng") || track.lang.equalsIgnoreCase("en") || track.lang.equalsIgnoreCase("jp") || track.lang.equalsIgnoreCase("jpn") || track.lang.equalsIgnoreCase("und")) {
 					if((!StringUtils.containsIgnoreCase(track.name, "sign") && !StringUtils.containsIgnoreCase(track.name, "song")) || StringUtils.containsIgnoreCase(track.name, "Full"))
 						return track;
 				}
@@ -73,7 +73,7 @@ public class TagUtil {
 				if(track.lang.equalsIgnoreCase("zxx")) {
 					return track;
 				}
-				if((track.lang.equalsIgnoreCase("eng") || track.lang.equalsIgnoreCase("und"))
+				if((track.lang.equalsIgnoreCase("eng") || track.lang.equalsIgnoreCase("en") || track.lang.equalsIgnoreCase("und"))
 						&& (StringUtils.containsIgnoreCase(track.name, "sign") || StringUtils.containsIgnoreCase(track.name, "song") || track.forced_flag)) {
 					return track;
 				}
