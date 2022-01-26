@@ -82,9 +82,22 @@ public class TagUtil {
 		return null;
 	}
 	
+	// Codecs: A_FLAC, A_PCM, A_DTS, A_TRUEHD
+	public static List<Track> getLosslessAudioTracks(File file){
+		List<Track> audioTracks = new ArrayList<>();
+		for(Track track : MkvInfoWrapper.parse(file)) {
+			if(track.type.equalsIgnoreCase("audio")) {
+				if(StringUtils.containsAny(track.codec_id.toLowerCase(), "A_FLAC".toLowerCase(), "A_PCM".toLowerCase(), "A_DTS".toLowerCase(), "A_TRUEHD".toLowerCase())) {
+					audioTracks.add(track);
+				}
+			}
+		}
+		return audioTracks;
+	}
+	
 	public static class Track {
 		
-		public int number, channels = 0;
+		public int number, channels = 0, sub_id_ffmpeg = -1, audio_id_ffmpeg = -1;
 		public String name = "", lang = "eng", type = "", codec_id = "";
 		public boolean default_flag = false, forced_flag = false;
 		

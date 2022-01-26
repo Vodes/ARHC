@@ -38,12 +38,11 @@ public class MkvInfoWrapper {
 		try {
 			List<String> output = getOutput(CommandLineUtil.runCommand(Arrays.asList(String.format("mkvinfo \"%s\"", file.getAbsolutePath())), true));
 			Track current = null;
-//			System.out.println("\n\n");
+			int audio_index = 0;
+			int sub_index = 0;
 			for(String line : output) {
-//				System.out.println(line);
 				if(StringUtils.startsWithIgnoreCase(line, "Track number")) {
 					if(current != null) {
-//						System.out.println("\n\n");
 						tracks.add(current);
 					}
 					String numberSt = StringUtils.removeStartIgnoreCase(line, "Track number:").trim();
@@ -51,37 +50,56 @@ public class MkvInfoWrapper {
 						numberSt = numberSt.split(" ")[0];
 					}
 					current = new Track(Integer.parseInt(numberSt));
-//					System.out.println("Track: " + current.number);
 				}
 				
 				if(current != null) {
 					if(StringUtils.startsWithIgnoreCase(line, "Track type")) {
 						current.type = line.split(":")[1].trim();
-//						System.out.println("Type: " + current.type);
+						if(current.type.equalsIgnoreCase("subtitles")) {
+							current.sub_id_ffmpeg = sub_index;
+							sub_index++;
+						}
+						if(current.type.equalsIgnoreCase("audio")) {
+							current.audio_id_ffmpeg = audio_index;
+							audio_index++;
+						}
 					}
 					if(StringUtils.startsWithIgnoreCase(line, "codec id")) {
-						current.codec_id = line.split(":")[1].trim();
+						try {
+							current.codec_id = line.split(":", -1)[1].trim();
+						} catch (Exception e) {
+						}
 					}
 					if(StringUtils.startsWithIgnoreCase(line, "language")) {
-						current.lang = line.split(":")[1].trim();
-//						System.out.println("Lang: " + current.lang);
+						try {
+							current.lang = line.split(":", -1)[1].trim();
+						} catch (Exception e) {
+						}
 					}
 					if(StringUtils.startsWithIgnoreCase(line, "name")) {
-						current.name = line.split(":")[1].trim();
-//						System.out.println("Name: " + current.name);
+						try {
+							current.name = line.split(":", -1)[1].trim();
+						} catch (Exception e) {
+						}
 					}
 					if(StringUtils.startsWithIgnoreCase(line, "channels")) {
-						current.channels = Integer.parseInt(line.split(":")[1].trim());
+						try {
+							current.channels = Integer.parseInt(line.split(":", -1)[1].trim());
+						} catch (Exception e) {
+						}
 					}
 					if(StringUtils.startsWithIgnoreCase(line, "default track")) {
-						current.default_flag = Integer.parseInt(line.split(":")[1].trim()) > 0;
+						try {
+							current.default_flag = Integer.parseInt(line.split(":", -1)[1].trim()) > 0;
+						} catch (Exception e) {}
 					}
 					if(StringUtils.startsWithIgnoreCase(line, "forced track")) {
-						current.forced_flag = Integer.parseInt(line.split(":")[1].trim()) > 0;
+						try {
+							current.forced_flag = Integer.parseInt(line.split(":", -1)[1].trim()) > 0;
+						} catch (Exception e) {}
 					}
 					if (StringUtils.startsWithIgnoreCase(line, "EBML void") || StringUtils.startsWithIgnoreCase(line, "File name")) {
 						tracks.add(current);
-//						System.out.println("\n\n");
 						break;
 					}
 				}
