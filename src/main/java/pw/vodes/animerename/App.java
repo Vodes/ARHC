@@ -152,7 +152,7 @@ public class App
 		} catch (IOException e2) {}
     	for(File file : files) {
 			if(FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("mkv")) {
-				System.out.println(file.getName() + "\n");
+				System.out.println("---------------------\n" + file.getName() + "\n");
 				System.out.println("Would rename/hardlink to: " + doTokenReplace(file.getName(), template, file) + ".mkv");
 				System.out.println("Would change title to: " + doTokenReplace(file.getName(), title_template, file) + "\n\n");
 				
@@ -398,8 +398,7 @@ public class App
     		
     		if(!temp.isEmpty()) {
     			double parsed = Double.parseDouble(temp);
-    			DecimalFormat df = new DecimalFormat("00");
-    			return df.format(parsed);
+    			return parsed < 10 ? "0" + parsed : "" + parsed; 
     		}
     	}
     	return "";
