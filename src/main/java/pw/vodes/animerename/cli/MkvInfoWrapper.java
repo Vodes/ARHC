@@ -23,7 +23,15 @@ public class MkvInfoWrapper {
 			BufferedReader br = new BufferedReader(isr);
 			String line = null;
 			while ((line = br.readLine()) != null) {
-				out.add(line.contains("+") ? line.split("\\+")[1].trim() : line.trim());
+				if(line.contains("+")) {
+//					if(line.indexOf("+") != line.lastIndexOf("+")) {
+//						
+//					} else {
+//						line = line.split("\\+")[1].trim();
+//					}
+					line = line.split("\\+", 2)[1].trim();
+				}
+				out.add(line);
 			}
 			p.waitFor();
 		} catch (Exception e) {
@@ -78,7 +86,8 @@ public class MkvInfoWrapper {
 					}
 					if(StringUtils.startsWithIgnoreCase(line, "name")) {
 						try {
-							current.name = line.split(":", -1)[1].trim();
+							int index = line.indexOf(':') + 1;
+							current.name = line.substring(index).trim();
 						} catch (Exception e) {
 						}
 					}

@@ -150,7 +150,7 @@ public class MainWindow {
 						if(!chckbxNewCheckBox_1.isSelected()) {
 							template = textField.getText();
 						}
-						String title = App.doTokenReplace(((File)table.getValueAt(count, -1)).getName(), template);
+						String title = App.doTokenReplace(((File)table.getValueAt(count, -1)).getName(), template, (File)table.getValueAt(count, -1));
 						String command = String.format("mkvpropedit \"%s\" --edit info --set title=\"%s\"", ((File)table.getValueAt(count, -2)).getAbsolutePath(), title);
 						ArrayList<String> commands = new ArrayList<>();
 						commands.add(command);
@@ -253,7 +253,7 @@ public class MainWindow {
 				
 				for (int count = 0; count < table.getRowCount(); count++) {
 					File in = ((File)table.getValueAt(count, -1));
-					TagUtil.fixTagging(in);
+					TagUtil.fixTagging(in, null);
 				}
 				JOptionPane.showMessageDialog(frame, "Done fixing tags.", "Done", 1);
 			}
@@ -363,7 +363,7 @@ public class MainWindow {
 		}
 		ArrayList<FileParse> parsed = new ArrayList<FileParse>();
 		for(File file : App.currentFiles) {
-			parsed.add(new FileParse(file, new File(file.getParentFile(), App.doTokenReplace(file.getName(), txtanimetitleseasonepisode.getText()).trim() + "." + FilenameUtils.getExtension(file.getName()))));
+			parsed.add(new FileParse(file, new File(file.getParentFile(), App.doTokenReplace(file.getName(), txtanimetitleseasonepisode.getText(), file).trim() + "." + FilenameUtils.getExtension(file.getName()))));
 		}
 		table.setModel(new FileParseTableModel(parsed));
 		table.repaint();

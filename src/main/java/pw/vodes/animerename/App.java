@@ -10,6 +10,8 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
@@ -36,7 +38,11 @@ public class App
 	public static List<File> currentFiles = new ArrayList<File>();
 	public static boolean isCLI = false;
 	
+	private static final Pattern seasonFolderPattern = Pattern.compile("(?i)^.*(?:((?: |\\.)S(\\d+)(?: |P|\\.))|(Season (\\d+))|((\\d)(?:st|nd|rd|th) Season)).*");
+	
 	public static final String DEFAULT_TEMPLATE = "%release_group_b% %anime_title% - %season_number_s%%episode_number_e%", DEFAULT_TITLE_TEMPLATE = "%anime_title% - %season_number_s%%episode_number_e%";
+	
+	private static final Token seasonToken = new Token("%season_number%", "kElementAnimeSeason");
 	
 	//CLI Options
 	private static Options cliOptions = new Options();
@@ -47,11 +53,13 @@ public class App
 	private static Option templateOption = new Option("t", "template", true, "Specifies the template used for renaming.\nDefault: " + DEFAULT_TEMPLATE);
 	private static Option titleTemplateOption = new Option("tt", "title_template", true, "Specifies the template used for mkv titles.\nDefault: " + DEFAULT_TITLE_TEMPLATE);
 	private static Option renameOption = new Option("rn", "rename", false, "Enables renaming");
+	private static Option debugOption = new Option("deb", "debug", false, "Enables debug output of ffmpeg and mkvpropedit");
 	private static Option titleOption = new Option("mkvt", "mkvtitles", false, "Enables mkv title setting");
 	private static Option hardlinkOption = new Option("hl", "hardlink", false, "Enables hardlinking");
 	private static Option fixtagsOption = new Option("ft", "fixtags", false, "Enables tagfixing");
 	private static Option convertOption = new Option("ac", "audioconvert", false, "Enables the conversion of lossless audio to opus");
 	private static Option episodeOffsetOp = new Option("eo", "episodeoffset", true, "Set a number offset for the parsed episode.\n%episode_number_a% ignores this because it's for absolute numbering");
+	private static Option noAssumeSeasonOp = new Option("nas", "noAssumeSeason", false, "Disable the assuming of Season via Folder Names (or S01 if none found)");
 	
     public static void main(String[] args){
     	addTokens();
@@ -64,6 +72,7 @@ public class App
     	} else {
     		isCLI = true;
     		cliOptions.addOption(fileOption);
+    		cliOptions.addOption(debugOption);
     		cliOptions.addOption(dirOption);
     		cliOptions.addOption(templateOption);
     		cliOptions.addOption(titleTemplateOption);
@@ -73,6 +82,7 @@ public class App
     		cliOptions.addOption(titleOption);
     		cliOptions.addOption(convertOption);
     		cliOptions.addOption(episodeOffsetOp);
+    		cliOptions.addOption(noAssumeSeasonOp);
     		
             HelpFormatter formatter = new HelpFormatter();
             formatter.setWidth(115);
@@ -135,14 +145,58 @@ public class App
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
+    	File tempdir = null;
+    	try {
+			tempdir = Files.createTempDirectory("arhc-conv").toFile();
+			tempdir.deleteOnExit();
+		} catch (IOException e2) {}
     	for(File file : files) {
 			if(FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("mkv")) {
 				System.out.println(file.getName() + "\n");
-				System.out.println("Would rename/hardlink to: " + doTokenReplace(file.getName(), template) + ".mkv");
-				System.out.println("Would change title to: " + doTokenReplace(file.getName(), title_template) + "\n\n");
+				System.out.println("Would rename/hardlink to: " + doTokenReplace(file.getName(), template, file) + ".mkv");
+				System.out.println("Would change title to: " + doTokenReplace(file.getName(), title_template, file) + "\n\n");
 				
-				for(Track track : TagUtil.getLosslessAudioTracks(file)) {
+				List<Track> tracks = MkvInfoWrapper.parse(file);
+				
+				Track full = TagUtil.getPossibleFullSubs(tracks);
+				if(full != null) {
+					System.out.println(String.format("Full Subs | ID: %d | Name: %s | Lang: %s", full.number, full.name, full.lang));
+				}
+				
+				//Set Sign Track to no-default and forced
+				Track sign = TagUtil.getPossibleSignSubs(tracks);
+				if(sign != null) {
+					System.out.println(String.format("Signs Subs | ID: %d | Name: %s | Lang: %s", sign.number, sign.name, sign.lang));
+				}
+				
+				Track germSign = TagUtil.getPossibleGermanSignSubs(tracks);
+				if(germSign != null) {
+					System.out.println(String.format("German Signs Subs | ID: %d | Name: %s | Lang: %s", germSign.number, germSign.name, germSign.lang));
+				}
+				
+				System.out.println("\n");
+				
+				List<Track> losslessTracks = TagUtil.getLosslessAudioTracks(tracks);
+				
+				for(Track track : losslessTracks) {
 					System.out.println("Lossless Audio Track: " + track.audio_id_ffmpeg + " | Name: " + track.name + " | Channels: " + track.channels);
+				}
+				
+				if(!losslessTracks.isEmpty()) {
+	    			String command = String.format("ffmpeg -i \"%s\" -map 0 -c copy", file.getAbsolutePath());
+	    			for(Track track : losslessTracks) {
+	        			int id = track.audio_id_ffmpeg;
+	    				if(track.channels <= 2) {
+	    					command += String.format(" -c:a:%d libopus -b:a:%d %s", id, id, track.name.toLowerCase().contains("comment") ? "128k" : "224k");
+	    				} else if(track.channels == 6) {
+	    					command += String.format(" -c:a:%d libopus -filter:a:%d \"channelmap=channel_layout=5.1\" -b:a:%d %s", id, id, id, track.name.toLowerCase().contains("comment") ? "256k" : "420k");
+	    				} else if(track.channels == 8) {
+	    					command += String.format(" -c:a:%d libopus -filter:a:%d \"channelmap=channel_layout=7.1\" -b:a:%d %s", id, id, id, track.name.toLowerCase().contains("comment") ? "320k" : "496k");
+	    				}
+	    			}
+	    			File outConv = new File(tempdir, file.getName());
+	    			command += String.format(" \"%s\"", outConv.getAbsolutePath());
+	    			System.out.println("Command for conversion:\n" + command);
 				}
 			}
     	}
@@ -158,21 +212,32 @@ public class App
 			tempdir.deleteOnExit();
 		} catch (IOException e2) {}
     	
-    	for(File file : files) {
-			if(!file.isFile() || !FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("mkv")) {
+    	for(File fileL : files) {
+			if(!fileL.isFile() || !FilenameUtils.getExtension(fileL.getName()).equalsIgnoreCase("mkv")) {
 				continue;
 			}
+			
+			File file = fileL;
+    		
     		if(changeTitle) {
-				String command = String.format("mkvpropedit \"%s\" --edit info --set title=\"%s\"", file.getAbsolutePath(), doTokenReplace(file.getName(), title_template));
+				String command = String.format("mkvpropedit \"%s\" --edit info --set title=\"%s\"", file.getAbsolutePath(), doTokenReplace(file.getName(), title_template, file));
 				try {
-					CommandLineUtil.runCommand(Arrays.asList(command), true).waitFor();
+					CommandLineUtil.runCommand(Arrays.asList(command), !cmd.hasOption(debugOption)).waitFor();
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				}
     		}
     		
-    		if(fixtags) {
-    			TagUtil.fixTagging(file);
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+    		if(rename) {
+    			File out = new File(file.getParentFile(), doTokenReplace(file.getName(), template, file) + ".mkv");
+    			file.renameTo(out);
+    			file = out;
     		}
     		
     		if(audioCon) {
@@ -185,31 +250,33 @@ public class App
     			if(!tracks.isEmpty() && tempdir != null) {
         			String command = String.format("ffmpeg -i \"%s\" -map 0 -c copy", file.getAbsolutePath());
         			for(Track track : tracks) {
-        				if(track.channels <= 2) {
-        					command += String.format(" -c:a:%d libopus -b:a:%d 224k", track.audio_id_ffmpeg, track.audio_id_ffmpeg);
-        				} else if(track.channels == 6) {
-        					command += String.format(" -c:a:%d libopus -filter:a:%d \"channelmap=channel_layout=5.1\" -b:a:%d 420k", track.audio_id_ffmpeg, track.audio_id_ffmpeg, track.audio_id_ffmpeg);
-        				} else if(track.channels == 8) {
-        					command += String.format(" -c:a:%d libopus -filter:a:%d \"channelmap=channel_layout=7.1\" -b:a:%d 496k", track.audio_id_ffmpeg, track.audio_id_ffmpeg, track.audio_id_ffmpeg);
-        				}
+	        			int id = track.audio_id_ffmpeg;
+	    				if(track.channels <= 2) {
+	    					command += String.format(" -c:a:%d libopus -b:a:%d %s", id, id, track.name.toLowerCase().contains("comment") ? "128k" : "224k");
+	    				} else if(track.channels == 6) {
+	    					command += String.format(" -c:a:%d libopus -filter:a:%d \"channelmap=channel_layout=5.1\" -b:a:%d %s", id, id, id, track.name.toLowerCase().contains("comment") ? "256k" : "420k");
+	    				} else if(track.channels == 8) {
+	    					command += String.format(" -c:a:%d libopus -filter:a:%d \"channelmap=channel_layout=7.1\" -b:a:%d %s", id, id, id, track.name.toLowerCase().contains("comment") ? "320k" : "496k");
+	    				}
         			}
-        			File out = new File(tempdir, file.getName());
-        			command += String.format(" \"%s\"", out.getAbsolutePath());
+        			File outConv = new File(tempdir, file.getName());
+        			command += String.format(" \"%s\"", outConv.getAbsolutePath());
         			try {
         				Sys.out("Converting: " + file.getName());
         				//Run conversion (ffmpeg)
-						CommandLineUtil.runCommand(Arrays.asList(command), true).waitFor();
+						CommandLineUtil.runCommand(Arrays.asList(command), !cmd.hasOption(debugOption)).waitFor();
 						// Wait a bit (safety first)
 		    			try {Thread.sleep(1000);} catch (InterruptedException e) {}
-        				Sys.out("Fixing metadata...");
+//        				Sys.out("Fixing converted track metadata...");
 						//Fix mkv metadata (due to ffmpeg fucking it up)
-						CommandLineUtil.runCommand(Arrays.asList(String.format("mkvpropedit --add-track-statistics-tags \"%s\"", out.getAbsolutePath())), true).waitFor();
+						CommandLineUtil.runCommand(Arrays.asList(String.format("mkvpropedit --add-track-statistics-tags \"%s\"", outConv.getAbsolutePath())), true).waitFor();
+		    			try {Thread.sleep(1000);} catch (InterruptedException e) {}
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
-        			if(out.exists() && out.length() > 1000) {
+        			if(outConv.exists() && outConv.length() > 1000) {
         				try {
-							Files.move(out.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+							Files.move(outConv.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
 						} catch (IOException e) {
 							e.printStackTrace();
 						}
@@ -217,18 +284,26 @@ public class App
     			}
     		}
     		
-			File out = new File(file.getParentFile(), doTokenReplace(file.getName(), template) + ".mkv");
-    		if(rename) {
-    			file.renameTo(out);
-    		} else if(hardlink) {
-    			try {
-    				File outDir = new File(out.getParentFile(), "links");
-    				outDir.mkdir();
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+    		
+    		if(fixtags) {
+    			TagUtil.fixTagging(file, null);
+    		}
+
+			if (hardlink && !audioCon && !fixtags && !rename) {
+				try {
+	    			File out = new File(file.getParentFile(), doTokenReplace(file.getName(), template, file) + ".mkv");
+					File outDir = new File(out.getParentFile(), "links");
+					outDir.mkdir();
 					Files.createLink(new File(outDir, out.getName()).toPath(), file.toPath());
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-    		}
+			}
     	}
     }
     
@@ -237,7 +312,7 @@ public class App
     	tokens.add(new Token("%episode_number_a%", "kElementEpisodeNumber"));
     	tokens.add(new Token("%episode_number_e%", "kElementEpisodeNumber"));
     	tokens.add(new Token("%episode_title%", "kElementEpisodeTitle"));
-    	tokens.add(new Token("%season_number%", "kElementAnimeSeason"));
+    	tokens.add(seasonToken);
     	tokens.add(new Token("%season_number_s%", "kElementAnimeSeason"));
     	tokens.add(new Token("%anime_title%", "kElementAnimeTitle"));
     	tokens.add(new Token("%release_group%", "kElementReleaseGroup"));
@@ -253,11 +328,22 @@ public class App
     	return s.trim();
     }
     
-    public static String doTokenReplace(String inputFile, String template) {
+    public static String doTokenReplace(String inputFile, String template, File file) {
     	String returnSt = template;
     	List<Element> aniElements = AnitomyJ.parse(inputFile);
+
     	for(Token token : tokens) {
     		String replacement = token.getValue(aniElements);
+    		if(token.name.toLowerCase().contains("%season_number")) {
+            	if(isCLI && !cmd.hasOption(noAssumeSeasonOp) && replacement.trim().isEmpty()) {
+            		// TODO: Check for possible season number in folder name with predefined regex
+            		replacement = getSeasonFromFolder(file.getParentFile().getName());
+            		if(replacement.trim().isEmpty()) {
+            			replacement = "01";
+            		}
+            	}
+//            	System.out.println("Season: " + replacement);
+    		}
     		if(token.name.equalsIgnoreCase("%episode_number_e%") || token.name.equalsIgnoreCase("%episode_number%")) {
     			if(isCLI) {
     				if(cmd.hasOption(episodeOffsetOp)) {
@@ -288,6 +374,35 @@ public class App
     		returnSt = returnSt.trim().replaceAll("(?i)" + token.name, replacement);
     	}
     	return returnSt;
+    }
+    
+    public static String getSeasonFromFolder(String folder) {
+    	Matcher match = seasonFolderPattern.matcher(folder);
+    	if(match.find()) {
+    		String temp = "";
+    		try {
+				if(temp.isEmpty() && match.group(6) != null) {
+					temp = match.group(6);
+				}
+			} catch (Exception e) {}
+    		try {
+				if(temp.isEmpty() && match.group(4) != null) {
+					temp = match.group(4);
+				}
+			} catch (Exception e) {}
+    		try {
+				if(temp.isEmpty() && match.group(2) != null) {
+					temp = match.group(2);
+				}
+			} catch (Exception e) {}
+    		
+    		if(!temp.isEmpty()) {
+    			double parsed = Double.parseDouble(temp);
+    			DecimalFormat df = new DecimalFormat("00");
+    			return df.format(parsed);
+    		}
+    	}
+    	return "";
     }
     
     public static String getTokenOverride(String token) {

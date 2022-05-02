@@ -8,9 +8,11 @@ import pw.vodes.animerename.TagUtil.Track;
 
 public class MkvPropEditWrapper {
 	
-	public static void editTrackMetadata(File file, List<Track> tracks) {
+	public static void editTrackMetadata(File file, List<Track> tracks, String title) {
 		String command = String.format("mkvpropedit \"%s\"", file.getAbsolutePath());
-		
+		if(title != null) {
+			command = String.format("mkvpropedit \"%s\" --edit info --set title=\"%s\"", file.getAbsolutePath(), title);
+		}
 		for(Track track : tracks) {
 			String name_part = " --set name=\"" + track.name + "\"";
 			String lang_part = " --set language=" + track.lang;
