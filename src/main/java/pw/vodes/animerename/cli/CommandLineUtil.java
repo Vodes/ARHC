@@ -1,4 +1,4 @@
-package pw.vodes.animerename;
+package pw.vodes.animerename.cli;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -6,19 +6,20 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
 
 public class CommandLineUtil {
 
-	public static Process runCommand(ArrayList<String> commands, boolean silent) {
+	public static Process runCommand(List<String> commands, boolean silent) {
 		Process process = null;
 		ArrayList<String> commandList = new ArrayList<>();
 		if (SystemUtils.IS_OS_WINDOWS) {
 			commandList.add("cmd");
 			commandList.add("/c");
-			commandList.add("start");
+//			commandList.add("start");
 		} else if (SystemUtils.IS_OS_LINUX) {
 			commandList.add("bash");
 			commandList.add("-c");
@@ -61,7 +62,7 @@ public class CommandLineUtil {
 				BufferedReader br = new BufferedReader(isr);
 				String line = null;
 				while ((line = br.readLine()) != null)
-					System.out.println(line);
+					System.out.println(line + "\n");
 			} catch (IOException ioe) {
 				ioe.printStackTrace();
 			}

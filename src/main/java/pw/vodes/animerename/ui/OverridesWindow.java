@@ -1,4 +1,4 @@
-package pw.vodes.animerename;
+package pw.vodes.animerename.ui;
 
 import java.awt.EventQueue;
 
@@ -10,6 +10,9 @@ import javax.swing.JTable;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableModel;
+
+import pw.vodes.animerename.App;
+
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import javax.swing.JLabel;
@@ -47,6 +50,8 @@ public class OverridesWindow extends JDialog {
 				{"%season_number%", App.getTokenOverride("%season_number%")},
 				{"%season_number_s%", App.getTokenOverride("%season_number_s%")},
 				{"%release_group%", App.getTokenOverride("%release_group%")},
+				{"%release_group_b%", App.getTokenOverride("%release_group%")},
+				{"%release_group_p%", App.getTokenOverride("%release_group%")},
 			},
 			new String[] {
 				"Token", "Override"
